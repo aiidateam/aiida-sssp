@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Configuration and fixtures for unit test suite."""
+import os
 import pytest
 
 pytest_plugins = ['aiida.manage.tests.pytest_fixtures']  # pylint: disable=invalid-name
@@ -26,3 +27,27 @@ def run_cli_command():
         return result
 
     return _run_cli_command
+
+
+@pytest.fixture
+def filepath_fixtures():
+    """Return the absolute filepath to the directory containing the file `fixtures`."""
+    return os.path.join(os.path.dirname(__file__), 'fixtures')
+
+
+@pytest.fixture
+def filepath_pseudos(filepath_fixtures):
+    """Return the absolute filepath to the directory containing the pseudo potential files."""
+    return os.path.join(filepath_fixtures, 'pseudos')
+
+
+@pytest.fixture
+def get_upf_data(filepath_pseudos):
+    """Return `UpfData` for a given element."""
+
+    def _get_upf_data(element='He'):
+        from aiida.plugins import DataFactory
+        UpfData = DataFactory('upf')
+        return UpfData(os.path.join(filepath_pseudos, '{}.upf'.format(element)))
+
+    return _get_upf_data
