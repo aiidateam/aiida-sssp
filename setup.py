@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Setup for the `aiida-sssp` plugin."""
+"""Define the setup for the `aiida-sssp` plugin."""
 
 
 def setup_package():
-    """Setup procedure."""
+    """Install the `aiida-sssp` package."""
     import json
     from utils import fastentrypoints  # pylint: disable=unused-import
     from setuptools import setup, find_packages

@@ -3,6 +3,7 @@ repos:
     rev: v2.5.0
     hooks:
     -   id: double-quote-string-fixer
+    -   id: end-of-file-fixer
     -   id: fix-encoding-pragma
     -   id: mixed-line-ending
     -   id: trailing-whitespace
@@ -16,6 +17,13 @@ repos:
             (?x)^(
             utils/fastentrypoints.py
             )$
+
+-   repo: https://github.com/PyCQA/pydocstyle
+    rev: 5.0.2
+    hooks:
+    -   id: pydocstyle
+        exclude: *exclude_files
+        args: ['--ignore=D104,D203,D213']
 
 -   repo: local
     hooks:
