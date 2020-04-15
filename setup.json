@@ -18,6 +18,9 @@
         "console_scripts": [
             "aiida-sssp = aiida_sssp.cli:cmd_root"
         ],
+        "aiida.data": [
+            "sssp.parameters = aiida_sssp.data.parameters:SsspParameters"
+        ],
         "aiida.groups": [
             "sssp.family = aiida_sssp.groups.family:SsspFamily"
         ]
