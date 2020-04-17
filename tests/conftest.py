@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=unused-argument
 """Configuration and fixtures for unit test suite."""
 import os
 import pytest
 
 pytest_plugins = ['aiida.manage.tests.pytest_fixtures']  # pylint: disable=invalid-name
+
+
+@pytest.fixture
+def clear_db(clear_database_before_test):
+    """Alias for the `clear_database_before_test` fixture from `aiida-core`."""
+    yield
 
 
 @pytest.fixture
