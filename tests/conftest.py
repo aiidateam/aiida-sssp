@@ -66,3 +66,14 @@ def get_upf_data(filepath_pseudos):
         return UpfData(os.path.join(filepath_pseudos, '{}.upf'.format(element)))
 
     return _get_upf_data
+
+
+@pytest.fixture
+def create_sssp_family(filepath_pseudos):
+    """Create an `SsspFamily` from the `tests/fixtures/pseudos` directory."""
+
+    def factory(label='SSSP/1.1/PBE/efficiency', description='SSSP v1.1 PBE efficiency'):
+        from aiida_sssp.groups import SsspFamily
+        return SsspFamily.create_from_folder(filepath_pseudos, label, description)
+
+    return factory
