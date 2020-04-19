@@ -11,6 +11,7 @@ __all__ = ('SsspFamily',)
 
 UpfData = DataFactory('upf')
 SsspParameters = DataFactory('sssp.parameters')
+StructureData = DataFactory('structure')
 
 
 class SsspFamily(Group):
@@ -21,6 +22,8 @@ class SsspFamily(Group):
 
     _node_types = (UpfData,)
     _pseudos = None
+    _parameters_node = None
+    _parameters = None
 
     def __repr__(self):
         """Represent the instance for debugging purposes."""
@@ -211,7 +214,72 @@ class SsspFamily(Group):
         """
         from aiida_sssp.data import SsspParameters
 
-        filters = {'attributes.{}'.format(SsspParameters.KEY_FAMILY_UUID): self.uuid}
-        builder = QueryBuilder().append(SsspParameters, filters=filters)
+        if self._parameters_node is None:
+            filters = {'attributes.{}'.format(SsspParameters.KEY_FAMILY_UUID): self.uuid}
+            builder = QueryBuilder().append(SsspParameters, filters=filters)
+            self._parameters_node = builder.one()[0]
+            self._parameters = self._parameters_node.attributes
 
-        return builder.one()[0]
+        return self._parameters_node
+
+    @property
+    def parameters(self):
+        """Return the attributes of the associated `SsspParameters` node if it exists.
+
+        :return: a dictionary with all attributes of the associated `SsspParameters` node
+        :raises: `aiida.common.exceptions.NotExistent` if the family does not have associated parameters
+        """
+        if self._parameters is None:
+            self.get_parameters_node()
+
+        return self._parameters
+
+    def get_parameter(self, element, parameter):
+        """Return a specific parameter for a given element.
+
+        :param element: the element
+        :param parameter: the key of the parameter
+        :raises: `aiida.common.exceptions.NotExistent` if the family does not have associated parameters
+        """
+        try:
+            element = self.parameters[element]
+        except KeyError:
+            raise KeyError('family `{}` does not contain the element `{}`'.format(self.label, element))
+
+        try:
+            return element[parameter]
+        except KeyError:
+            raise KeyError('parameter `{}` is not available for element `{}`'.format(parameter, element))
+
+    def get_cutoffs(self, elements=None, structure=None):
+        """Return the tuple of recommended cuoff and dual for either the given elements or `StructureData`.
+
+        .. note:: at least one and only one of arguments `elements` or `structure` should be passed.
+
+        :param elements: single or tuple of elements
+        :param structure: a `StructureData` node
+        :return: tuple of recommended wavefunction and density cutoff
+        :raises: `aiida.common.exceptions.NotExistent` if the family does not have associated parameters
+        """
+        if (elements is None and structure is None) or (elements is not None and structure is not None):
+            raise ValueError('at least one and only one of `elements` or `structure` should be defined')
+
+        type_check(elements, (tuple, str), allow_none=True)
+        type_check(structure, StructureData, allow_none=True)
+
+        if structure is not None:
+            symbols = structure.get_symbols_set()
+        elif isinstance(elements, tuple):
+            symbols = elements
+        else:
+            symbols = (elements,)
+
+        cutoffs_wfc = []
+        cutoffs_rho = []
+
+        for element in symbols:
+            values = self.parameters[element]
+            cutoffs_wfc.append(values['cutoff_wfc'])
+            cutoffs_rho.append(values['cutoff_rho'])
+
+        return (max(cutoffs_wfc), max(cutoffs_rho))

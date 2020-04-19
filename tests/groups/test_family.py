@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument,pointless-statement
 """Tests for the `SsspFamily` class."""
 import copy
 import distutils.dir_util
@@ -10,15 +10,18 @@ import tempfile
 import pytest
 
 from aiida import orm
+from aiida.common import exceptions
+
+from aiida_sssp.data import SsspParameters
 from aiida_sssp.groups import SsspFamily
 
 
-def test_type_string(clear_database):
+def test_type_string(clear_db):
     """Verify the `_type_string` class attribute is correctly set to the corresponding entry point name."""
     assert SsspFamily._type_string == 'sssp.family'  # pylint: disable=protected-access
 
 
-def test_construct(clear_database):
+def test_construct(clear_db):
     """Test the construction of `SsspFamily` works."""
     family = SsspFamily(label='SSSP').store()
     assert isinstance(family, SsspFamily)
@@ -29,7 +32,7 @@ def test_construct(clear_database):
     assert family.description == description
 
 
-def test_load(clear_database):
+def test_load(clear_db):
     """Test that loading of a `SsspFamily` through `load_group` works."""
     family = SsspFamily(label='SSSP').store()
     assert isinstance(family, SsspFamily)
@@ -40,7 +43,7 @@ def test_load(clear_database):
     assert loaded.elements == family.elements
 
 
-def test_add_nodes(clear_database, get_upf_data):
+def test_add_nodes(clear_db, get_upf_data):
     """Test the `SsspFamily.add_nodes` method."""
     upf_he = get_upf_data(element='He').store()
     upf_ne = get_upf_data(element='Ne').store()
@@ -70,7 +73,7 @@ def test_add_nodes(clear_database, get_upf_data):
     assert family.count() == 3
 
 
-def test_elements(clear_database, get_upf_data):
+def test_elements(clear_db, get_upf_data):
     """Test the `SsspFamily.elements` property."""
     upf_he = get_upf_data(element='He').store()
     upf_ne = get_upf_data(element='Ne').store()
@@ -82,7 +85,7 @@ def test_elements(clear_database, get_upf_data):
     assert sorted(family.elements) == ['Ar', 'He', 'Ne']
 
 
-def test_get_pseudo(clear_database, get_upf_data):
+def test_get_pseudo(clear_db, get_upf_data):
     """Test the `SsspFamily.get_pseudo` property."""
     upf_he = get_upf_data(element='He').store()
     upf_ne = get_upf_data(element='Ne').store()
@@ -101,7 +104,7 @@ def test_get_pseudo(clear_database, get_upf_data):
     assert upf.element == element
 
 
-def test_validate_parameters(clear_database, create_sssp_family, create_sssp_parameters):
+def test_validate_parameters(clear_db, create_sssp_family, create_sssp_parameters):
     """Test the `SsspFamily.validate_parameters` class method."""
     family = create_sssp_family()
     parameters = create_sssp_parameters()
@@ -130,7 +133,7 @@ def test_validate_parameters(clear_database, create_sssp_family, create_sssp_par
     assert 'inconsistent `md5` for element `Ar`' in str(exception.value)
 
 
-def test_create_from_folder(clear_database, filepath_pseudos):
+def test_create_from_folder(clear_db, filepath_pseudos):
     """Test the `SsspFamily.create_from_folder` class method."""
     label = 'SSSP'
     family = SsspFamily.create_from_folder(filepath_pseudos, label)
@@ -149,7 +152,7 @@ def test_create_from_folder(clear_database, filepath_pseudos):
     assert 'Got object of type' in str(exception.value)
 
 
-def test_create_from_folder_invalid(clear_database, filepath_pseudos):
+def test_create_from_folder_invalid(clear_db, filepath_pseudos):
     """Test the `SsspFamily.create_from_folder` class method for invalid inputs."""
     label = 'SSSP'
 
@@ -201,7 +204,7 @@ def test_create_from_folder_invalid(clear_database, filepath_pseudos):
         assert orm.UpfData.objects.count() == 0
 
 
-def test_create_from_folder_with_parameters(clear_database, filepath_pseudos, sssp_parameter_filepath):
+def test_create_from_folder_with_parameters(clear_db, filepath_pseudos, sssp_parameter_filepath):
     """Test the `SsspFamily.create_from_folder` class method when passing a file with pseudo metadata."""
     with pytest.raises(TypeError):
         SsspFamily.create_from_folder(filepath_pseudos, 'SSSP', filepath_parameters={})
@@ -222,3 +225,81 @@ def test_create_from_folder_with_parameters(clear_database, filepath_pseudos, ss
 
         parameters = family.get_parameters_node()
         assert parameters.family_uuid == family.uuid
+
+
+def test_get_parameters_node(clear_db, create_sssp_family, create_sssp_parameters):
+    """Test the `SsspFamily.get_parameters_node` method."""
+    family = create_sssp_family()
+
+    with pytest.raises(exceptions.NotExistent):
+        family.get_parameters_node()
+
+    parameters = create_sssp_parameters(uuid=family.uuid).store()
+
+    assert isinstance(family.get_parameters_node(), SsspParameters)
+    assert family.get_parameters_node().uuid == parameters.uuid
+
+
+def test_parameters(clear_db, create_sssp_family, create_sssp_parameters):
+    """Test the `SsspFamily.parameters` property."""
+    family = create_sssp_family()
+
+    with pytest.raises(exceptions.NotExistent):
+        family.parameters
+
+    parameters = create_sssp_parameters(uuid=family.uuid).store()
+
+    assert isinstance(family.parameters, dict)
+    assert family.parameters == parameters.attributes
+
+
+def test_get_parameter(clear_db, create_sssp_family, create_sssp_parameters, sssp_parameter_metadata):
+    """Test the `SsspFamily.get_parameter` method."""
+    family = create_sssp_family()
+
+    with pytest.raises(exceptions.NotExistent):
+        family.get_parameter('Ar', 'cutoff')
+
+    parameters = create_sssp_parameters(uuid=family.uuid).store()
+
+    with pytest.raises(KeyError):
+        family.get_parameter('Br', 'cutoff')
+
+    with pytest.raises(KeyError):
+        family.get_parameter('Ar', 'parameter')
+
+    element = 'Ar'
+    key_cutoff_wfc = 'cutoff_wfc'
+    key_cutoff_rho = 'cutoff_rho'
+
+    assert family.get_parameter(element, key_cutoff_wfc) == parameters.get_attribute(element)[key_cutoff_wfc]
+    assert family.get_parameter(element, key_cutoff_rho) == parameters.get_attribute(element)[key_cutoff_rho]
+
+
+def test_get_cutoffs(clear_db, create_sssp_family, create_sssp_parameters, create_structure):
+    """Test the `SsspFamily.get_cutoffs` method."""
+    family = create_sssp_family()
+    parameters = create_sssp_parameters(uuid=family.uuid).store().attributes
+    structure = create_structure(site_kind_names=['Ar', 'He', 'Ne'])
+
+    with pytest.raises(ValueError):
+        family.get_cutoffs(elements=None, structure=None)
+
+    with pytest.raises(ValueError):
+        family.get_cutoffs(elements='Ar', structure=structure)
+
+    with pytest.raises(TypeError):
+        family.get_cutoffs(elements=False, structure=None)
+
+    with pytest.raises(TypeError):
+        family.get_cutoffs(elements=None, structure='Ar')
+
+    expected = parameters['Ar']
+    assert family.get_cutoffs(elements='Ar') == (expected['cutoff_wfc'], expected['cutoff_rho'])
+    assert family.get_cutoffs(elements=('Ar',)) == (expected['cutoff_wfc'], expected['cutoff_rho'])
+
+    expected = parameters['He']
+    assert family.get_cutoffs(elements=('Ar', 'He')) == (expected['cutoff_wfc'], expected['cutoff_rho'])
+
+    expected = parameters['Ne']
+    assert family.get_cutoffs(structure=structure) == (expected['cutoff_wfc'], expected['cutoff_rho'])

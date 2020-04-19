@@ -138,3 +138,27 @@ def create_sssp_parameters(sssp_parameter_metadata, uuid):
         return SsspParameters(parameters, uuid)
 
     return factory
+
+
+@pytest.fixture
+def create_structure():
+    """Return a `StructureData` instance."""
+
+    def _create_structure(site_kind_names):
+        """Return a `StructureData` instance."""
+        import re
+        from aiida.plugins import DataFactory
+
+        StructureData = DataFactory('structure')
+
+        if not isinstance(site_kind_names, (list, tuple)):
+            site_kind_names = (site_kind_names,)
+
+        structure = StructureData(cell=[[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+
+        for kind_name in site_kind_names:
+            structure.append_atom(name=kind_name, symbols=re.sub('[0-9]', '', kind_name), position=(0., 0., 0.))
+
+        return structure
+
+    return _create_structure
