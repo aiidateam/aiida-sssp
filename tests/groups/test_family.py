@@ -303,3 +303,31 @@ def test_get_cutoffs(clear_db, create_sssp_family, create_sssp_parameters, creat
 
     expected = parameters['Ne']
     assert family.get_cutoffs(structure=structure) == (expected['cutoff_wfc'], expected['cutoff_rho'])
+
+    # Try structure with multiple kinds with the same element
+    expected = parameters['He']
+    structure = create_structure(site_kind_names=['He1', 'He2'])
+    assert family.get_cutoffs(structure=structure) == (expected['cutoff_wfc'], expected['cutoff_rho'])
+
+
+def test_get_pseudos(clear_db, create_sssp_family, create_sssp_parameters, create_structure):
+    """Test the `SsspFamily.get_pseudos` method."""
+    family = create_sssp_family()
+
+    with pytest.raises(TypeError):
+        family.get_pseudos('Ar')
+
+    expected = {
+        'Ar': family.get_pseudo('Ar'),
+        'He': family.get_pseudo('He'),
+        'Ne': family.get_pseudo('Ne'),
+    }
+    structure = create_structure(site_kind_names=['Ar', 'He', 'Ne'])
+    assert family.get_pseudos(structure) == expected
+
+    expected = {
+        'Ar1': family.get_pseudo('Ar'),
+        'Ar2': family.get_pseudo('Ar'),
+    }
+    structure = create_structure(site_kind_names=['Ar1', 'Ar2'])
+    assert family.get_pseudos(structure) == expected

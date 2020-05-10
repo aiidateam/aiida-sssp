@@ -206,6 +206,16 @@ class SsspFamily(Group):
 
         return pseudo
 
+    def get_pseudos(self, structure):
+        """Return the mapping of kind names on `UpfData` for the given structure.
+
+        :param structure: the `StructureData` for which to return the corresponding `UpfData` mapping.
+        :return: dictionary of kind name mapping `UpfData`
+        :raises ValueError: if the family does not contain a `UpfData` for any of the elements of the given structure.
+        """
+        type_check(structure, StructureData)
+        return {kind.name: self.get_pseudo(kind.symbol) for kind in structure.kinds}
+
     def get_parameters_node(self):
         """Return the associated `SsspParameters` node if it exists.
 
