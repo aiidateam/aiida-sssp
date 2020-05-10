@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Commands to install an `SsspFamily`."""
 import os
+
 import click
 
 from aiida.cmdline.utils import decorators, echo
@@ -32,11 +33,14 @@ def cmd_install(version, functional, protocol, traceback):
     import tempfile
 
     from aiida.common import exceptions
+    from aiida.common.files import md5_file
     from aiida.orm import QueryBuilder
+
+    from aiida_sssp import __version__
     from aiida_sssp.groups import SsspFamily
 
     label = '{}/{}/{}/{}'.format('SSSP', version, functional, protocol)
-    description = 'SSSP v{} {} {} installed through `aiida-sssp`'.format(version, functional, protocol)
+    description = 'SSSP v{} {} {} installed with aiida-sssp v{}'.format(version, functional, protocol, __version__)
 
     try:
         QueryBuilder().append(SsspFamily, filters={'label': label}).limit(1).one()
@@ -63,12 +67,16 @@ def cmd_install(version, functional, protocol, traceback):
             response.raise_for_status()
             with open(filepath_archive, 'wb') as handle:
                 handle.write(response.content)
+                handle.flush()
+                description += '\nArchive pseudos md5: {}'.format(md5_file(filepath_archive))
 
         with attempt('downloading selected pseudo potentials metadata... ', include_traceback=traceback):
             response = requests.get(url_metadata)
             response.raise_for_status()
             with open(filepath_metadata, 'wb') as handle:
                 handle.write(response.content)
+                handle.flush()
+                description += '\nPseudo metadata md5: {}'.format(md5_file(filepath_metadata))
 
         with attempt('unpacking archive and parsing pseudos... ', include_traceback=traceback):
             family = create_family_from_archive(label, filepath_archive, filepath_metadata)
