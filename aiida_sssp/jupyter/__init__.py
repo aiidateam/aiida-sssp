@@ -32,8 +32,7 @@ class SsspSelectorWidget(ipw.VBox):
 
     def validate_family_selection(self, change=None):
         """Check if selected family is installed. If not, enable the functionality to do install."""
-        builder = get_sssp_families_builder(*change['new'])
-        installed = builder.all(flat=True)
+        installed = get_sssp_families_builder(*change['new']).all(flat=True)  # pylint: disable=unexpected-keyword-arg
         if len(installed) == 1:
             self.output.value = ''
             self.button.hidden = True
