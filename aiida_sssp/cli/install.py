@@ -9,7 +9,7 @@ from .root import cmd_root
 from .utils import attempt, create_family_from_archive
 from . import options
 
-URL_BASE = 'https://archive.materialscloud.org/file/2018.0001/v4/'
+URL_BASE = 'https://legacy-archive.materialscloud.org/file/2018.0001/v4/'
 URL_MAPPING = {
     ('1.0', 'PBE', 'efficiency'): 'SSSP_1.0_PBE_efficiency',
     ('1.0', 'PBE', 'precision'): 'SSSP_1.0_PBE_precision',
