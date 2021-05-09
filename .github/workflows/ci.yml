@@ -27,7 +27,7 @@ jobs:
 
         -   name: Install python dependencies
             run:
-                pip install -e .[pre-commit,tests]
+                pip install -e .[jupyter,pre-commit,tests]
 
         -   name: Run pre-commit
             run:

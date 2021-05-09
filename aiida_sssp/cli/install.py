@@ -20,39 +20,11 @@ URL_MAPPING = {
 }
 
 
-@cmd_root.command('install')
-@options.VERSION(type=click.Choice(['1.0', '1.1']), default='1.1')
-@options.FUNCTIONAL(type=click.Choice(['PBE', 'PBEsol']), default='PBE')
-@options.PROTOCOL(type=click.Choice(['efficiency', 'precision']), default='efficiency')
-@click.option('-t', '--traceback', is_flag=True, help='Include the stacktrace if an exception is encountered.')
-@decorators.with_dbenv()
-def cmd_install(version, functional, protocol, traceback):
-    """Install a configuration of the SSSP."""
-    # pylint: disable=too-many-locals
+def download_family(url_base, label='', description='', traceback=False):
+    """Download and install selected pseudo family."""
     import requests
     import tempfile
-
-    from aiida.common import exceptions
     from aiida.common.files import md5_file
-    from aiida.orm import QueryBuilder
-
-    from aiida_sssp import __version__
-    from aiida_sssp.groups import SsspFamily
-
-    label = '{}/{}/{}/{}'.format('SSSP', version, functional, protocol)
-    description = 'SSSP v{} {} {} installed with aiida-sssp v{}'.format(version, functional, protocol, __version__)
-
-    try:
-        QueryBuilder().append(SsspFamily, filters={'label': label}).limit(1).one()
-    except exceptions.NotExistent:
-        pass
-    else:
-        echo.echo_critical('SSSP {} {} {} is already installed: {}'.format(version, functional, protocol, label))
-
-    try:
-        url_base = os.path.join(URL_BASE, URL_MAPPING[(version, functional, protocol)])
-    except KeyError:
-        echo.echo_critical('No SSSP available for {} {} {}'.format(version, functional, protocol))
 
     with tempfile.TemporaryDirectory() as dirpath:
 
@@ -83,3 +55,35 @@ def cmd_install(version, functional, protocol, traceback):
 
         family.description = description
         echo.echo_success('installed `{}` containing {} pseudo potentials'.format(label, family.count()))
+
+
+@cmd_root.command('install')
+@options.VERSION(type=click.Choice(['1.0', '1.1']), default='1.1')
+@options.FUNCTIONAL(type=click.Choice(['PBE', 'PBEsol']), default='PBE')
+@options.PROTOCOL(type=click.Choice(['efficiency', 'precision']), default='efficiency')
+@click.option('-t', '--traceback', is_flag=True, help='Include the stacktrace if an exception is encountered.')
+@decorators.with_dbenv()
+def cmd_install(version, functional, protocol, traceback):
+    """Install a configuration of the SSSP."""
+    from aiida.common import exceptions
+    from aiida.orm import QueryBuilder
+
+    from aiida_sssp import __version__
+    from aiida_sssp.groups import SsspFamily
+
+    label = '{}/{}/{}/{}'.format('SSSP', version, functional, protocol)
+    description = 'SSSP v{} {} {} installed with aiida-sssp v{}'.format(version, functional, protocol, __version__)
+
+    try:
+        QueryBuilder().append(SsspFamily, filters={'label': label}).limit(1).one()
+    except exceptions.NotExistent:
+        pass
+    else:
+        echo.echo_critical('SSSP {} {} {} is already installed: {}'.format(version, functional, protocol, label))
+
+    try:
+        url_base = os.path.join(URL_BASE, URL_MAPPING[(version, functional, protocol)])
+    except KeyError:
+        echo.echo_critical('No SSSP available for {} {} {}'.format(version, functional, protocol))
+
+    download_family(url_base=url_base, label=label, description=description, traceback=traceback)
